@@ -1,0 +1,17 @@
+# Service interno do Collector -> endereço que os serviços conhecem
+# diferença em dev e prod é o namespace onde ele é criado
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector      
+  labels:
+    app: otel-collector
+spec:
+  type: ClusterIP            
+  selector:
+    app: otel-collector      
+  ports:
+    - { name: otlp-grpc, port: 4317, targetPort: 4317 }   # porta do Service 
+    - { name: otlp-http, port: 4318, targetPort: 4318 }   # porta que as APIs usam 
+    - { name: health,    port: 13133, targetPort: 13133 } # health_check

@@ -1,0 +1,27 @@
+# Overlay de PRODUÇÃO -> GCP + k8s namespace solierrr.
+# troca só que difere de dev -> namespace e 2 env
+# O Secret grafana-cloud-otlp.yaml precisa no gcp
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: solierrr             # PROD 
+
+resources:
+  - ../../k8s                   # base
+
+# marca o ambiente como prod e reduz volume de traces normais 
+patches:
+  - patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: otel-collector
+      spec:
+        template:
+          spec:
+            containers:
+              - name: otel-collector
+                env:
+                  - { name: DEPLOYMENT_ENVIRONMENT,     value: "prod" }
+                  - { name: TAIL_SAMPLING_BASELINE_PCT, value: "10" }

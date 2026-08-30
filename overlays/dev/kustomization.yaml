@@ -1,0 +1,24 @@
+# Overlay de DEV 
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: solier-local  # DEV
+
+resources:
+  - ../../k8s # base
+
+# mantém 100% dos traces (sem amostragem) e marca o ambiente como dev
+patches:
+  - patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: otel-collector
+      spec:
+        template:
+          spec:
+            containers:
+              - name: otel-collector
+                env:
+                  - { name: DEPLOYMENT_ENVIRONMENT,     value: "dev" }
+                  - { name: TAIL_SAMPLING_BASELINE_PCT, value: "100" }
