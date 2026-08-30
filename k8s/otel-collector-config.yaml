@@ -1,0 +1,130 @@
+# Este arquivo vira um ConfigMap pelo kustomization.yaml
+# define ports que o collector recebe os dados
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+
+# proteção para o collector não cair em picos de métricas recebidas
+processors:
+  # protege a memoria do Collector sob pico de trafego
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+
+  # detecta atributos do ambiente para enriquecimento das métricas
+  resourcedetection:
+    detectors: [env, system, gcp] # qa em aws mudar para aws em vez de gcp
+    # não sobrescreve nenhum dado declarado
+    override: false
+
+  # busca por env do ambiente dev | prod
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${env:DEPLOYMENT_ENVIRONMENT}
+        action: upsert
+
+  # remove headers sensiveis antes de enviar para o grafana cloud
+  attributes/redact:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.apikey
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.response.header.set-cookie
+        action: delete
+
+  # remove texto/parametros da query SQL dos spans do BD
+  transform/db:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["db.statement"], "") where attributes["db.statement"] != nil
+
+  # controle de custo: mantem 100% dos erros e dos traces lentos; amostra o restante
+
+  # espera o trace terminar para envia-lo ao grafana
+  tail_sampling:
+   # tempo de espera
+    decision_wait: 10s
+
+    # quantidade de traces armazenados enquanto espera o tempo 
+    num_traces: 10000
+
+    # politica de armazenamento de traces
+    # traces com erro/lentos são sempre armazenados
+    # traces normais podem ter sua % alterada para controle de custos
+    policies:
+      - name: errors
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: slow
+        type: latency
+        latency:
+          threshold_ms: 2000
+      - name: baseline
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: ${env:TAIL_SAMPLING_BASELINE_PCT}
+
+  # agrupa os traces antes de envia-los
+  # evita muitas requests para o grafana
+  # envio automatico a cada 5 segundos | agrupamento desejado de 6767 | agrupamento maxímo de 8042
+  batch:
+    send_batch_size: 6767
+    send_batch_max_size: 8042
+    timeout: 5s
+
+# endpoint de saúde da aplicação
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+# configs para envio de telemetria para o grafana
+exporters:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_CLOUD_OTLP_ENDPOINT}
+    headers:
+      Authorization: ${env:GRAFANA_CLOUD_OTLP_AUTH}
+  debug:
+    verbosity: basic
+
+# definição de etapas para cada tipo de telemtrica
+service:
+
+  # extensão para verifcar a saude do collector 
+  extensions: [health_check]
+
+  # definição das 3 pipelines, traces, metrics e logs
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, resource, attributes/redact, transform/db, tail_sampling, batch]
+      exporters: [otlphttp/grafana]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, resource, batch]
+      exporters: [otlphttp/grafana]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, resource, attributes/redact, batch]
+      exporters: [otlphttp/grafana]
+
+# explicação dos caminhos configurados em processors
+# memory_limiter   → protege memória do collector
+# resourcedetection → detecta ambiente/host automaticamente
+# resource          → adiciona ambiente por env
+# attributes/redact → remove dados sensíveis do header da request
+# transform/db      → remove SQL da request
+# tail_sampling     → controla quais quais/% de traces vão para o grafana
+# batch             → agrupa os traces antes de mandar para o grafana

@@ -1,0 +1,17 @@
+# BASE do Kustomize / valores iguais em dev e prod (Deployment + Service + pipeline)
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - service.yaml
+  - deployment.yaml
+
+# Transforma o YAML do pipeline em ConfigMap
+configMapGenerator:
+  - name: otel-collector-config
+    files:
+      - otel-collector-config.yaml
+
+generatorOptions:
+  disableNameSuffixHash: false
