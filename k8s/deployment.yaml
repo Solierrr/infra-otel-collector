@@ -1,0 +1,53 @@
+# Deployment do OpenTelemetry Collector 
+# Os valores que mudam por ambiente vêm dos overlays
+# Os valores de env abaixo são os defaults de dev
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector           
+  labels:
+    app: otel-collector           
+spec:
+ # obrigatorio ser 1 réplica -> tail_sampling precisa ver todos os spans de um trace na mesma réplica
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector        
+  template:
+    metadata:
+      labels:
+        app: otel-collector       
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.115.1 
+          args: ["--config=/conf/otel-collector-config.yaml"] 
+          ports:
+            - { name: otlp-grpc, containerPort: 4317 }   # recebe OTLP via gRPC
+            - { name: otlp-http, containerPort: 4318 }   # recebe OTLP via HTTP
+            - { name: health,    containerPort: 13133 }  # health_check
+          env:
+            # valores de dev(padrão) | overlay sobrescreve
+            - { name: DEPLOYMENT_ENVIRONMENT,     value: "dev" }  
+            - { name: TAIL_SAMPLING_BASELINE_PCT, value: "100" }  
+          envFrom:
+            - secretRef:
+                name: grafana-cloud-otlp    
+          volumeMounts:
+            - { name: config, mountPath: /conf, readOnly: true }  
+          readinessProbe:                  
+            httpGet: { path: /, port: 13133 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:                    
+            httpGet: { path: /, port: 13133 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }  
+            limits:   { cpu: 500m, memory: 512Mi } 
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config  # gerado pelo configMapGenerator do kustomization 
