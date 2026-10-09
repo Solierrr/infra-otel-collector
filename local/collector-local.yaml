@@ -1,0 +1,4 @@
+processors:
+  resourcedetection:
+    detectors: [env, system]
+    override: false

@@ -62,3 +62,33 @@ Copie `k8s/secret.example.yaml` para fora do controle de versão (ou use `.env.e
 ```Comando de referência (não commitar o arquivo preenchido)
 kubectl apply -f secret-preenchido.yaml -n solier-local
 ```
+
+
+### Grafana local com o Collector (opcional)
+
+<p>
+  <a href="https://github.com/syvixor/skills-icons">
+    <img src="https://skills.syvixor.com/api/icons?i=docker,grafana" height="48" alt="Docker e Grafana">
+  </a>
+</p>
+
+`local/compose.yaml` sobe o Collector e o Grafana (`grafana/otel-lgtm`, que reúne Grafana, Loki, Tempo e Prometheus em um container) na sua máquina. O Collector usa a mesma configuração do cluster (`k8s/otel-collector-config.yaml`), com o exporter apontado para o Grafana local. Os dados ficam só na memória do container e se perdem quando ele para.
+
+O jeito mais simples é pelo `make up OBS=1` dentro do repositório de um serviço (ver `docs-warehouse/helps/TRY-LOCAL.md`). Para subir só a observabilidade:
+
+```Comandos para subir o Collector e o Grafana
+docker network create local
+docker compose -f local/compose.yaml up -d
+```
+
+- Grafana em `http://localhost:3000` (usuário `admin`, senha `admin`). Em **Explore**, escolha Loki, Tempo ou Prometheus; na pasta de dashboards, abra **Solaria / Visão geral** e **Solaria / Serviço**.
+- O Collector recebe OTLP em `localhost:4317` (gRPC) e `localhost:4318` (HTTP). Containers na rede `local` usam `http://otel-collector:4318`.
+- Para enviar ao Grafana Cloud em vez do local, defina `OTLP_BACKEND_ENDPOINT` e `OTLP_BACKEND_AUTH` antes de subir.
+- Para testar sem um serviço, envie um span de teste:
+
+```Comando para enviar um span de teste
+curl -X POST http://localhost:4318/v1/traces -H 'Content-Type: application/json' \
+  -d '{"resourceSpans":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"smoke-test"}}]},"scopeSpans":[{"spans":[{"traceId":"5b8efff798038103d269b633813fc60c","spanId":"eee19b7ec3c1b174","name":"GET /ping","kind":2,"startTimeUnixNano":"1700000000000000000","endTimeUnixNano":"1700000000250000000"}]}]}]}'
+```
+
+Para parar: `docker compose -f local/compose.yaml down`.

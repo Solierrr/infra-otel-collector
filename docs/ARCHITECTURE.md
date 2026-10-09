@@ -21,6 +21,12 @@ Este repositório segue a arquitetura padrão de infraestrutura como código da 
 ├── .github/
 │   ├── CODEOWNERS
 │   └── CONTRIBUTING.md
+├── grafana/
+│   ├── dashboards/                # Solaria / Visão geral e Solaria / Serviço
+│   └── provisioning/dashboards/   # provider que registra a pasta de dashboards
+├── local/
+│   ├── collector-local.yaml       # sobreposição do Collector local (sem o detector gcp)
+│   └── compose.yaml               # Collector + grafana/otel-lgtm na rede local
 ├── k8s/
 │   ├── deployment.yaml            # Deployment do Collector (1 réplica, env de dev como default)
 │   ├── kustomization.yaml         # base: Service + Deployment + configMapGenerator do pipeline
@@ -40,3 +46,12 @@ Este repositório segue a arquitetura padrão de infraestrutura como código da 
 ├── ARCHITECTURE.md
 └── RUNNING.md
 ```
+
+
+## Ambiente local
+
+- `local/compose.yaml`: o Collector (mesma imagem e mesma configuração base do cluster, `k8s/otel-collector-config.yaml`) e o `grafana/otel-lgtm`, na rede externa `local`. O exporter `otlphttp/grafana` aponta para o Grafana local por variável (`OTLP_BACKEND_ENDPOINT`), o que mantém a configuração única entre local e produção.
+- `local/collector-local.yaml`: sobreposição mínima, aplicada com um segundo `--config`. Só remove o detector `gcp` do `resourcedetection`, que não existe fora da GCP.
+- `grafana/`: configuração do Grafana como código. `provisioning/dashboards/solaria.yaml` registra a pasta `grafana/dashboards/`, que traz os dashboards `Solaria / Visão geral` e `Solaria / Serviço`. As fontes de dados (Loki, Tempo e Prometheus, com correlação entre log, trace e métrica) já vêm provisionadas pela imagem.
+- Os dashboards consultam tanto as métricas de HTTP do Micrometer (serviços Java: `http_server_requests_milliseconds_*`) quanto as do SDK Python (`http_server_duration_milliseconds_*`).
+- O `infra-scripts` clona este repositório e sobe esse Compose pelo `make up OBS=1`.
