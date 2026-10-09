@@ -1,0 +1,43 @@
+name: local-observability
+
+services:
+  lgtm:
+    container_name: local-grafana
+    image: grafana/otel-lgtm:0.35.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ../grafana/provisioning/dashboards/solaria.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/solaria.yaml:ro
+      - ../grafana/dashboards:/var/lib/solaria/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+
+  otel-collector:
+    container_name: local-otel-collector
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    command:
+      - --config=/conf/otel-collector-config.yaml
+      - --config=/conf/collector-local.yaml
+    environment:
+      DEPLOYMENT_ENVIRONMENT: local
+      TAIL_SAMPLING_BASELINE_PCT: "100"
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${OTLP_BACKEND_ENDPOINT:-http://lgtm:4318}
+      GRAFANA_CLOUD_OTLP_AUTH: ${OTLP_BACKEND_AUTH:-}
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - ../k8s/otel-collector-config.yaml:/conf/otel-collector-config.yaml:ro
+      - ./collector-local.yaml:/conf/collector-local.yaml:ro
+    depends_on:
+      lgtm:
+        condition: service_healthy
+
+networks:
+  default:
+    name: local
+    external: true
