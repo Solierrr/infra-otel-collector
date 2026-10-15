@@ -54,4 +54,4 @@ Este repositório segue a arquitetura padrão de infraestrutura como código da 
 - `local/collector-local.yaml`: sobreposição mínima, aplicada com um segundo `--config`. Só remove o detector `gcp` do `resourcedetection`, que não existe fora da GCP.
 - `grafana/`: configuração do Grafana como código. `provisioning/dashboards/solaria.yaml` registra a pasta `grafana/dashboards/`, que traz os dashboards `Solaria / Visão geral` e `Solaria / Serviço`. As fontes de dados (Loki, Tempo e Prometheus, com correlação entre log, trace e métrica) já vêm provisionadas pela imagem.
 - Os dashboards consultam tanto as métricas de HTTP do Micrometer (serviços Java: `http_server_requests_milliseconds_*`) quanto as do SDK Python (`http_server_duration_milliseconds_*`).
-- O `infra-scripts` clona este repositório e sobe esse Compose pelo `make up OBS=1`.
+- `make obs-up` sobe esse Compose (criando a rede `local` se ela não existir) e `make obs-down` o derruba.

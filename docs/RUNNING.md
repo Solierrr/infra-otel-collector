@@ -74,7 +74,7 @@ kubectl apply -f secret-preenchido.yaml -n solier-local
 
 `local/compose.yaml` sobe o Collector e o Grafana (`grafana/otel-lgtm`, que reúne Grafana, Loki, Tempo e Prometheus em um container) na sua máquina. O Collector usa a mesma configuração do cluster (`k8s/otel-collector-config.yaml`), com o exporter apontado para o Grafana local. Os dados ficam só na memória do container e se perdem quando ele para.
 
-O jeito mais simples é pelo `make up OBS=1` dentro do repositório de um serviço (ver `docs-warehouse/helps/TRY-LOCAL.md`). Para subir só a observabilidade:
+O jeito mais simples é o `make obs-up`, que cria a rede `local` se ela não existir e sobe o Collector e o Grafana (ver `docs-warehouse/helps/TRY-LOCAL.md`). Sem o Makefile, os comandos equivalentes são:
 
 ```Comandos para subir o Collector e o Grafana
 docker network create local
@@ -91,4 +91,4 @@ curl -X POST http://localhost:4318/v1/traces -H 'Content-Type: application/json'
   -d '{"resourceSpans":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"smoke-test"}}]},"scopeSpans":[{"spans":[{"traceId":"5b8efff798038103d269b633813fc60c","spanId":"eee19b7ec3c1b174","name":"GET /ping","kind":2,"startTimeUnixNano":"1700000000000000000","endTimeUnixNano":"1700000000250000000"}]}]}]}'
 ```
 
-Para parar: `docker compose -f local/compose.yaml down`.
+Para parar: `make obs-down` ou `docker compose -f local/compose.yaml down`.
