@@ -3,7 +3,7 @@
 # Requer: make e sh (Git Bash no Windows). Para `make vault`: Infisical CLI e `infisical login`.
 
 # ---- especifico deste repositorio ----
-VAULT_FOLDERS ?=
+VAULT_FOLDERS ?= /otel
 KUSTOMIZE_DIRS ?= k8s overlays/dev overlays/prod
 INSTALL_CMD   ?=
 DEV_CMD       ?=
