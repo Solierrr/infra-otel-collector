@@ -22,8 +22,9 @@ Este repositório segue a arquitetura padrão de infraestrutura como código da 
 │   ├── CODEOWNERS
 │   └── CONTRIBUTING.md
 ├── grafana/
-│   ├── dashboards/                # Solaria / Visão geral e Solaria / Serviço
-│   └── provisioning/dashboards/   # provider que registra a pasta de dashboards
+│   ├── dashboards/                # services-overview e service-detail
+│   ├── provisioning/dashboards/   # provider que registra a pasta de dashboards
+│   └── kustomization.yaml         # gera os ConfigMaps usados pelo Grafana do cluster
 ├── local/
 │   ├── collector-local.yaml       # sobreposição do Collector local (sem o detector gcp)
 │   └── compose.yaml               # Collector + grafana/otel-lgtm na rede local

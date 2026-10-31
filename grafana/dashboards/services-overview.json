@@ -1,9 +1,9 @@
 {
-  "uid": "solaria-overview",
-  "title": "Solaria / Visão geral",
+  "uid": "services-overview",
+  "title": "services-overview",
   "description": "Taxa de requisições, erros 5xx, latência p95 e erros nos logs de cada serviço.",
   "tags": [
-    "solaria"
+    "services"
   ],
   "schemaVersion": 39,
   "version": 1,

@@ -1,9 +1,9 @@
 {
-  "uid": "solaria-service",
-  "title": "Solaria / Serviço",
+  "uid": "service-detail",
+  "title": "service-detail",
   "description": "Métricas, logs e traces de um serviço. Clique em um trace ou em um log com trace_id para navegar entre eles.",
   "tags": [
-    "solaria"
+    "services"
   ],
   "schemaVersion": 39,
   "version": 1,
