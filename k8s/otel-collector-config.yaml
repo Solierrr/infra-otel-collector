@@ -50,6 +50,19 @@ processors:
         statements:
           - set(attributes["db.statement"], "") where attributes["db.statement"] != nil
 
+  # remove rotulos de metrica que explodem o numero de series (o plano gratuito do
+  # Grafana Cloud tem limite): http.target guarda o caminho cru, com IDs, e os demais
+  # repetem informacao que ja vem em outros rotulos ou mudam a cada processo
+  transform/metrics_cardinality:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - delete_key(attributes, "http.target")
+          - delete_key(attributes, "http.host")
+          - delete_key(attributes, "http.server_name")
+          - delete_key(attributes, "net.host.port")
+
   # controle de custo: mantem 100% dos erros e dos traces lentos; amostra o restante
 
   # espera o trace terminar para envia-lo ao grafana
@@ -113,7 +126,7 @@ service:
       exporters: [otlphttp/grafana]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, resourcedetection, resource, batch]
+      processors: [memory_limiter, resourcedetection, resource, transform/metrics_cardinality, batch]
       exporters: [otlphttp/grafana]
     logs:
       receivers: [otlp]
@@ -126,5 +139,6 @@ service:
 # resource          → adiciona ambiente por env
 # attributes/redact → remove dados sensíveis do header da request
 # transform/db      → remove SQL da request
+# transform/metrics_cardinality → remove rótulos de métrica de alta cardinalidade
 # tail_sampling     → controla quais quais/% de traces vão para o grafana
 # batch             → agrupa os traces antes de mandar para o grafana
