@@ -1,0 +1,18 @@
+# Dashboards e provider do Grafana como ConfigMaps. O infra-gitops instala este
+# diretório direto deste repositório (Application grafana, segunda fonte), então
+# os dashboards têm um único dono.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - dashboards/services-overview.json
+      - dashboards/service-detail.json
+  - name: grafana-dashboard-provider
+    files:
+      - dashboards.yaml=provisioning/dashboards/dashboards.yaml
+
+# nomes estáveis: o Deployment do Grafana monta os ConfigMaps pelo nome
+generatorOptions:
+  disableNameSuffixHash: true
