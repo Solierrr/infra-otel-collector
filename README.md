@@ -1,53 +1,37 @@
-# infra-otel-collector
+<p align="center">
+  <img src="./assets/readme/banners/grafana.png" alt="Grafana" width="100%">
+</p>
 
-Este repositório concentra a definição do OpenTelemetry Collector centralizado da organização, responsável por receber toda a telemetria (traces, métricas e logs) emitida pelas APIs internas via protocolo OTLP e encaminhá-la para o Grafana Cloud. Em vez de cada serviço exportar diretamente para um backend externo, todas as aplicações apontam para este Collector, que aplica processamento comum — proteção de memória, enriquecimento de atributos, remoção de dados sensíveis e amostragem de traces — antes de reexportar via `OTLP/HTTP` para o Grafana Cloud usando `otlphttp/grafana`. O deploy é gerenciado com Kustomize, com uma base compartilhada em `k8s/` e overlays de `dev` e `prod` que ajustam namespace e taxa de amostragem por ambiente.
+<p align="center">
+  <img src="./assets/readme/stacks/opentelemetry.png" width="100" hspace="8" alt="OpenTelemetry" title="OpenTelemetry">
+  <img src="./assets/readme/stacks/kubernetes.png" width="100" hspace="8" alt="Kubernetes" title="Kubernetes">
+  <img src="./assets/readme/stacks/docker.png" width="100" hspace="8" alt="Docker" title="Docker">
+</p>
 
-<p>
+# Coleta central de telemetria
 
 [![License](https://img.shields.io/github/license/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/blob/main/LICENSE)
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/commits)
-[![GitHub Issues](https://img.shields.io/github/issues/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/pulls)
-[![GitHub Contributors](https://img.shields.io/github/contributors/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/graphs/contributors)
 [![Release](https://img.shields.io/github/v/release/Solierrr/infra-otel-collector)](https://github.com/Solierrr/infra-otel-collector/releases)
 
-</p>
+O coletor reúne os registros, métricas e rastros de execução dos serviços para apoiar o diagnóstico da plataforma. Ele aplica um tratamento comum antes de enviar os dados ao ambiente de observabilidade. A equipe consegue relacionar falhas e lentidão de uma operação sem configurar um destino diferente em cada aplicação.
 
-<div align="center">
-
-<p>
-  <a href="https://github.com/syvixor/skills-icons">
-    <img src="https://skills.syvixor.com/api/icons?i=kubernetes,grafana,gcp" height="48" alt="Cloud & Observabilidade">
-  </a>
-</p>
-
-<p>
-
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-000000?logo=opentelemetry&logoColor=white)](https://opentelemetry.io/)
-[![Grafana Cloud](https://img.shields.io/badge/Grafana_Cloud-F46800?logo=grafana&logoColor=white)](https://grafana.com/products/cloud/)
-[![Google Cloud](https://img.shields.io/badge/Google_Cloud-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/)
-
-</p>
-
-</div>
-
-## Fluxo de Telemetria
-
-```
-API --OTLP--> otel-collector --OTLP/HTTP--> Grafana Cloud
-```
-
-Localmente, o mesmo Collector envia para um Grafana self-hosted (`grafana/otel-lgtm`), subido por `local/compose.yaml` ou pelo `make obs-up`. Veja `docs/RUNNING.md`.
-
-O Collector expõe as portas `4317` (OTLP/gRPC) e `4318` (OTLP/HTTP) para receber dados das aplicações, e usa o endpoint e o token de autenticação do Grafana Cloud (injetados via Secret `grafana-cloud-otlp`) para autenticar o envio. Roda obrigatoriamente com **1 réplica**, já que o processor de `tail_sampling` precisa enxergar todos os spans de um mesmo trace na mesma instância para decidir corretamente se ele deve ser amostrado.
+Os serviços enviam telemetria por OTLP ao OpenTelemetry Collector. A configuração controla memória, atributos, amostragem e envio em lote. Em produção, o destino configurado é o Grafana Cloud. No desenvolvimento, uma composição local oferece coleta e visualização com painéis versionados no mesmo repositório.
 
 ## Aprofunde-se no Projeto!
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md), estrutura do repositório e detalhamento dos receivers/processors/exporters configurados no pipeline.
-- [RUNNING.md](./RUNNING.md), como renderizar e validar os manifestos localmente com Kustomize.
+- [OVERVIEW.md](./docs/OVERVIEW.md), finalidade e regras de produto.
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md), componentes, dados e integrações.
+- [RUNNING.md](./docs/RUNNING.md), preparação e execução local.
+- [API.md](./docs/API.md), autenticação e uso do contrato.
+- [DEPLOY.md](./docs/DEPLOY.md), ambientes e publicação.
+- [STATUS.md](./docs/STATUS.md), limites observados.
+- [Fluxos](./flows/), etapas e casos de erro do repositório.
+- [PENDENCIAS.md](./PENDENCIAS.md), questões para revisão.
 
 ## Contribuindo
 
-- [.github/CONTRIBUTING.md](./.github/CONTRIBUTING.md), convenções de commit, branch e Pull Request.
-- [.github/CODEOWNERS](./.github/CODEOWNERS), donos responsáveis por revisar mudanças no repositório.
+- [CONTRIBUTING.md](https://github.com/Solierrr/.github/blob/main/.github/CONTRIBUTING.md), convenções de contribuição.
+- [CODE_OF_CONDUCT.md](https://github.com/Solierrr/.github/blob/main/CODE_OF_CONDUCT.md), código de conduta.
+- [SECURITY.md](https://github.com/Solierrr/.github/blob/main/SECURITY.md), relato de vulnerabilidades.
